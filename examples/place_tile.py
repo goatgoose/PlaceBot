@@ -10,4 +10,4 @@ password = sys.argv[2]
 
 placer = Placer()
 placer.login(username, password)
-placer.place_tile(432, 286, Color.from_name("BLACK"))
+placer.place_tile(432, 286, Color.BLACK)

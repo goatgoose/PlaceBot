@@ -99,7 +99,7 @@ class Placer:
                     "input": {
                         "PixelMessageData": {
                             "canvasIndex": canvas_index,
-                            "colorIndex": color.value,
+                            "colorIndex": color.value.id,
                             "coordinate": {"x": x, "y": y},
                         },
                         "actionName": "r/replace:set_pixel",
@@ -118,19 +118,21 @@ class Placer:
         assert r.status_code == 200
 
         im = Image.open(BytesIO(r.content))
-        map_data = self.image_to_data(im, (1000, 1000))
+        map_data = self.image_to_data(im, (1000, 1000), indexed_color=True)
 
         return map_data
 
-    def maintain_image(self, x: int, y: int, image_path: str, image_shape: Tuple[int, int]):
+    def maintain_image(self, x: int, y: int, image_path: str, image_shape: Tuple[int, int], indexed_color=False):
         """
         :param x: left most x coord
         :param y: top most y coord
         :param image_path: path of the image to maintain
         :param image_shape shape of the image
+        :param indexed_color image is saved using an indexed color mode, the same mode that native place images
+        are formatted.
         """
         im = Image.open(image_path)
-        im_data = self.image_to_data(im, image_shape)
+        im_data = self.image_to_data(im, image_shape, indexed_color=indexed_color)
 
         while True:
             map_data = self.get_map_data()
@@ -141,7 +143,7 @@ class Placer:
                 differing_pixel = differing_pixels[0]
                 x_ = differing_pixel[0]
                 y_ = differing_pixel[1]
-                self.place_tile(x + x_, y + y_, Color.colors_by_id()[im_data[y_, x_]])
+                self.place_tile(x + x_, y + y_, Color.from_id(im_data[y_, x_]))
                 time.sleep(60 * 5 + 10)
             else:
                 time.sleep(30)
@@ -158,12 +160,16 @@ class Placer:
         return differing_pixels
 
     @staticmethod
-    def image_to_data(image: Image, shape: Tuple[int, int]):
-        rgb_im = image.convert("RGB")
+    def image_to_data(image: Image, shape: Tuple[int, int], indexed_color=False):
+        if indexed_color:
+            data = np.array(image.getdata())
 
-        data = np.array([Color.from_pixel(px).value for px in rgb_im.getdata()])
+            # all color indices are off by 1
+            data = data - 1
+        else:
+            data = np.array([Color.from_pixel(px).value.id for px in image.getdata()])
+
         data = np.reshape(data, shape)
-
         return data
 
     def _get_map_url(self):
