@@ -11,7 +11,7 @@ import numpy as np
 from typing import Tuple
 
 from . import queries
-from .color import Color
+from place_bot import color
 
 
 class Placer:
@@ -76,7 +76,7 @@ class Placer:
         data = json.loads(data_str)
         self.token = data["user"]["session"]["accessToken"]
 
-    def place_tile(self, x: int, y: int, color: Color):
+    def place_tile(self, x: int, y: int, color_: color.Color):
         # handle 2nd canvas
         canvas_index = x // 1000
         x -= canvas_index * 1000
@@ -103,7 +103,7 @@ class Placer:
                     "input": {
                         "PixelMessageData": {
                             "canvasIndex": canvas_index,
-                            "colorIndex": color.value,
+                            "colorIndex": color_.value,
                             "coordinate": {"x": x, "y": y},
                         },
                         "actionName": "r/replace:set_pixel",
@@ -115,7 +115,7 @@ class Placer:
 
         assert r.status_code == 200
 
-        print(f"{self.username} placed {color.name} tile at {x}, {y}")
+        print(f"{self.username} placed {color_.name} tile at {x}, {y}")
 
     def get_map_data(self):
         r = requests.get(self._get_map_url())
@@ -148,7 +148,7 @@ class Placer:
                 differing_pixel = differing_pixels[0]
                 x_ = differing_pixel[0]
                 y_ = differing_pixel[1]
-                self.place_tile(x + x_, y + y_, Color.colors_by_id()[im_data[y_, x_]])
+                self.place_tile(x + x_, y + y_, color.colors_by_id[im_data[y_, x_]])
                 time.sleep(60 * 5 + 10)
             else:
                 time.sleep(30)
@@ -168,7 +168,7 @@ class Placer:
     def image_to_data(image: Image, shape: Tuple[int, int]):
         rgb_im = image.convert("RGB")
 
-        data = np.array([Color.from_pixel(px).value for px in rgb_im.getdata()])
+        data = np.array([color.from_pixel(px).value for px in rgb_im.getdata()])
         data = np.reshape(data, shape)
 
         return data
