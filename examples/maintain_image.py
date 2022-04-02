@@ -10,4 +10,4 @@ password = sys.argv[2]
 
 placer = Placer()
 placer.login(username, password)
-placer.maintain_image(449, 647, "../testing/goatgoose.png", (6, 46))
+placer.maintain_image(449, 647, "../testing/pink_square_rgb.png", (4, 4))
