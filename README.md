@@ -13,8 +13,7 @@ placer.place_tile(432, 286, Color.BLACK)
 
 See: [examples](examples/)
 
-## Features / TODO
-- [x] place a tile at a coordinate
-- [x] maintain image
-  - diffs the canvas to a provided image and fills in the differing tiles
-- [ ] support for multiple reddit users
+## Features
+- place a tile at a coordinate
+- maintain image 
+   - diffs the canvas to a provided image and fills in the differing tiles
