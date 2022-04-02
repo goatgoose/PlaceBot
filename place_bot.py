@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import websocket
 from PIL import Image
 import numpy as np
+from typing import Tuple
 
 import queries
 
@@ -120,18 +121,61 @@ class Placer:
 
         assert r.status_code == 200
 
+        print(f"placed {color.name} tile at {x}, {y}")
+
     def get_map_data(self):
         r = requests.get(self._get_map_url())
         assert r.status_code == 200
 
         im = Image.open(BytesIO(r.content))
-        map_data = np.array(im.getdata())
-        map_data = np.reshape(map_data, (1000, 1000))
-
-        # all color values are off by 1
-        map_data = map_data - 1
+        map_data = self.image_to_data(im, (1000, 1000))
 
         return map_data
+
+    def maintain_image(self, x: int, y: int, image_path: str, image_shape: Tuple[int, int]):
+        """
+        :param x: left most x coord
+        :param y: top most y coord
+        :param image_path: path of the image to maintain
+        :param image_shape shape of the image
+        """
+        im = Image.open(image_path)
+        im_data = self.image_to_data(im, image_shape)
+
+        while True:
+            map_data = self.get_map_data()
+            map_slice = map_data[y:y + image_shape[0], x:x + image_shape[1]]
+
+            differing_pixels = self._find_differing_pixels(map_slice, im_data, image_shape)
+            if len(differing_pixels) > 0:
+                differing_pixel = differing_pixels[0]
+                x_ = differing_pixel[0]
+                y_ = differing_pixel[1]
+                self.place_tile(x + x_, y + y_, Color(im_data[y_, x_]))
+                time.sleep(60 * 5 + 10)
+            else:
+                time.sleep(30)
+
+    @staticmethod
+    def _find_differing_pixels(map_data, im_data, shape):
+        differing_pixels = []
+        for y_ in range(shape[0]):
+            for x_ in range(shape[1]):
+                map_value = map_data[y_, x_]
+                im_value = im_data[y_, x_]
+                if map_value != im_value:
+                    differing_pixels.append((x_, y_))
+        return differing_pixels
+
+    @staticmethod
+    def image_to_data(image: Image, shape: Tuple[int, int]):
+        data = np.array(image.getdata())
+        data = np.reshape(data, shape)
+
+        # all color values are off by 1
+        data = data - 1
+
+        return data
 
     def _get_map_url(self):
         ws = websocket.create_connection("wss://gql-realtime-2.reddit.com/query")
@@ -167,4 +211,5 @@ class Placer:
             if result["id"] != "1":
                 continue
             assert result["payload"]["data"]["subscribe"]["data"]["__typename"] == "FullFrameMessageData"
+            ws.close()
             return result["payload"]["data"]["subscribe"]["data"]["name"]
