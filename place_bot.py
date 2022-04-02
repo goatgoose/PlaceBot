@@ -14,24 +14,30 @@ import queries
 
 
 class Color(Enum):
-    DARK_RED = 1
-    RED = 2
-    ORANGE = 3
-    YELLOW = 4
-    DARK_GREEN = 6
-    GREEN = 7
-    LIGHT_GREEN = 8
-    DARK_BLUE = 12
-    BLUE = 13
-    LIGHT_BLUE = 14
-    DARK_PURPLE = 18
-    PURPLE = 19
-    LIGHT_PINK = 23
-    BROWN = 25
-    BLACK = 27
-    GRAY = 29
-    LIGHT_GRAY = 30
-    WHITE = 31
+    DARK_RED = 1 #BE0039
+    RED = 2 #FF4500
+    ORANGE = 3 #FFA800
+    YELLOW = 4 #FFD635
+    DARK_GREEN = 6 #00A368
+    GREEN = 7 #00CC78
+    LIGHT_GREEN = 8 #7EED56
+#    DARK_TEAL #00756F
+#    TEAL #009EAA
+    DARK_BLUE = 12 #2450A4
+    BLUE = 13 #3690EA
+    LIGHT_BLUE = 14     #51E9F4
+#    INDIGO #493AC1
+#    PERIWINKLE #6A5CFF
+    DARK_PURPLE = 18 #811E9F
+    PURPLE = 19 #B44AC0
+#    PINK #FF3881
+    LIGHT_PINK = 23 #FF99AA
+    BROWN = 25 #6D482F
+#    DARK_BROWN #9C6926
+    BLACK = 27 #000000
+    GRAY = 29 #898D90
+    LIGHT_GRAY = 30 #D4D7D9
+    WHITE = 31 #FFFFFF
 
 
 class Placer:
