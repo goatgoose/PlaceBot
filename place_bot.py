@@ -1,36 +1,12 @@
-import sys
 from enum import Enum
 import time
 import json
 
 import requests
 from bs4 import BeautifulSoup
+import websocket
 
-SET_PIXEL_QUERY = \
-"""mutation setPixel($input: ActInput!) {
-  act(input: $input) {
-    data {
-      ... on BasicMessage {
-        id
-        data {
-          ... on GetUserCooldownResponseMessageData {
-            nextAvailablePixelTimestamp
-            __typename
-          }
-          ... on SetPixelResponseMessageData {
-            timestamp
-            __typename
-          }
-          __typename
-        }
-        __typename
-      }
-      __typename
-    }
-    __typename
-  }
-}
-"""
+import queries
 
 
 class Color(Enum):
@@ -100,9 +76,45 @@ class Placer:
 
         # get the new access token
         r = self.client.get(self.REDDIT_URL)
-        data_str = BeautifulSoup(r.content).find("script", {"id": "data"}).contents[0][len("window.__r = "):-1]
+        data_str = BeautifulSoup(r.content, "html.parser").find("script", {"id": "data"}).contents[0][len("window.__r = "):-1]
         data = json.loads(data_str)
         self.token = data["user"]["session"]["accessToken"]
+
+    def get_map_url(self):
+        ws = websocket.create_connection("wss://gql-realtime-2.reddit.com/query")
+        ws.send(json.dumps({
+            "type": "connection_init",
+            "payload": {
+                "Authorization": "Bearer " + self.token
+            }
+        }))
+        ws.send(json.dumps({
+            "type": "start",
+            "id": "1",
+            "payload": {
+                "extensions": {},
+                "operationName": "replace",
+                "query": queries.FULL_FRAME_MESSAGE_SUBSCRIBE_QUERY,
+                "variables": {
+                    "input": {
+                        "channel": {
+                            "category": "CANVAS",
+                            "tag": "0",
+                            "teamOwner": "AFD2022"
+                        }
+                    }
+                }
+            }
+        }))
+
+        while True:
+            result = json.loads(ws.recv())
+            if "id" not in result:
+                continue
+            if result["id"] != "1":
+                continue
+            assert result["payload"]["data"]["subscribe"]["data"]["__typename"] == "FullFrameMessageData"
+            return result["payload"]["data"]["subscribe"]["data"]["name"]
 
     def place_tile(self, x: int, y: int, color: Color):
         headers = self.INITIAL_HEADERS.copy()
@@ -120,7 +132,7 @@ class Placer:
             "https://gql-realtime-2.reddit.com/query",
             json={
                 "operationName": "setPixel",
-                "query": SET_PIXEL_QUERY,
+                "query": queries.SET_PIXEL_QUERY,
                 "variables": {
                     "input": {
                         "PixelMessageData": {
