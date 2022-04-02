@@ -1,10 +1,13 @@
 from enum import Enum
 import time
 import json
+from io import BytesIO
 
 import requests
 from bs4 import BeautifulSoup
 import websocket
+from PIL import Image
+import numpy as np
 
 import queries
 
@@ -55,10 +58,9 @@ class Placer:
     def login(self, username: str, password: str):
         # get the csrf token
         r = self.client.get(self.LOGIN_URL)
-        time.sleep(1)
-
         login_get_soup = BeautifulSoup(r.content, "html.parser")
         csrf_token = login_get_soup.find("input", {"name": "csrf_token"})["value"]
+        time.sleep(1)
 
         # authenticate
         r = self.client.post(
@@ -79,42 +81,6 @@ class Placer:
         data_str = BeautifulSoup(r.content, "html.parser").find("script", {"id": "data"}).contents[0][len("window.__r = "):-1]
         data = json.loads(data_str)
         self.token = data["user"]["session"]["accessToken"]
-
-    def get_map_url(self):
-        ws = websocket.create_connection("wss://gql-realtime-2.reddit.com/query")
-        ws.send(json.dumps({
-            "type": "connection_init",
-            "payload": {
-                "Authorization": "Bearer " + self.token
-            }
-        }))
-        ws.send(json.dumps({
-            "type": "start",
-            "id": "1",
-            "payload": {
-                "extensions": {},
-                "operationName": "replace",
-                "query": queries.FULL_FRAME_MESSAGE_SUBSCRIBE_QUERY,
-                "variables": {
-                    "input": {
-                        "channel": {
-                            "category": "CANVAS",
-                            "tag": "0",
-                            "teamOwner": "AFD2022"
-                        }
-                    }
-                }
-            }
-        }))
-
-        while True:
-            result = json.loads(ws.recv())
-            if "id" not in result:
-                continue
-            if result["id"] != "1":
-                continue
-            assert result["payload"]["data"]["subscribe"]["data"]["__typename"] == "FullFrameMessageData"
-            return result["payload"]["data"]["subscribe"]["data"]["name"]
 
     def place_tile(self, x: int, y: int, color: Color):
         headers = self.INITIAL_HEADERS.copy()
@@ -151,3 +117,52 @@ class Placer:
         )
 
         assert r.status_code == 200
+
+    def get_map_data(self):
+        r = requests.get(self._get_map_url())
+        assert r.status_code == 200
+
+        im = Image.open(BytesIO(r.content))
+        map_data = np.array(im.getdata())
+        map_data = np.reshape(map_data, (1000, 1000))
+
+        # all color values are off by 1
+        map_data = map_data - 1
+
+        return map_data
+
+    def _get_map_url(self):
+        ws = websocket.create_connection("wss://gql-realtime-2.reddit.com/query")
+        ws.send(json.dumps({
+            "type": "connection_init",
+            "payload": {
+                "Authorization": "Bearer " + self.token
+            }
+        }))
+        ws.send(json.dumps({
+            "type": "start",
+            "id": "1",
+            "payload": {
+                "extensions": {},
+                "operationName": "replace",
+                "query": queries.FULL_FRAME_MESSAGE_SUBSCRIBE_QUERY,
+                "variables": {
+                    "input": {
+                        "channel": {
+                            "category": "CANVAS",
+                            "tag": "0",
+                            "teamOwner": "AFD2022"
+                        }
+                    }
+                }
+            }
+        }))
+
+        while True:
+            result = json.loads(ws.recv())
+            if "id" not in result:
+                continue
+            if result["id"] != "1":
+                continue
+            assert result["payload"]["data"]["subscribe"]["data"]["__typename"] == "FullFrameMessageData"
+            return result["payload"]["data"]["subscribe"]["data"]["name"]
