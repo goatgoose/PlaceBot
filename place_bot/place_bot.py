@@ -10,7 +10,7 @@ from PIL import Image
 import numpy as np
 from typing import Tuple
 
-import queries
+from . import queries
 
 from dataclasses import dataclass
 
@@ -126,6 +126,10 @@ class Placer:
         self.token = data["user"]["session"]["accessToken"]
 
     def place_tile(self, x: int, y: int, color: Color):
+        # handle 2nd canvas
+        canvas_index = x // 1000
+        x -= canvas_index * 1000
+
         headers = self.INITIAL_HEADERS.copy()
         headers.update(
             {
@@ -147,7 +151,7 @@ class Placer:
                 "variables": {
                     "input": {
                         "PixelMessageData": {
-                            "canvasIndex": 0,
+                            "canvasIndex": canvas_index,
                             "colorIndex": color.value,
                             "coordinate": {"x": x, "y": y},
                         },
