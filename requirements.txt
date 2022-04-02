@@ -1,0 +1,4 @@
+requests
+websocket-client
+beautifulsoup4
+imageio
