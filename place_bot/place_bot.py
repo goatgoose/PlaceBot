@@ -10,7 +10,7 @@ from PIL import Image
 import numpy as np
 from typing import Tuple
 
-import queries
+from . import queries
 
 
 class Color(Enum):
