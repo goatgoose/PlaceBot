@@ -93,8 +93,10 @@ class Placer:
         self.client.headers.update(self.INITIAL_HEADERS)
 
         self.token = None
+        self.username = ""
 
     def login(self, username: str, password: str):
+        self.username = username
         # get the csrf token
         r = self.client.get(self.LOGIN_URL)
         login_get_soup = BeautifulSoup(r.content, "html.parser")
@@ -164,7 +166,7 @@ class Placer:
 
         assert r.status_code == 200
 
-        print(f"placed {color.name} tile at {x}, {y}")
+        print(f"{self.username} placed {color.name} tile at {x}, {y}")
 
     def get_map_data(self):
         r = requests.get(self._get_map_url())
@@ -175,9 +177,7 @@ class Placer:
 
         return map_data
 
-    def maintain_image(
-        self, x: int, y: int, image_path: str, image_shape: Tuple[int, int]
-    ):
+    def maintain_image(self, x: int, y: int, image_path: str):
         """
         :param x: left most x coord
         :param y: top most y coord
@@ -185,6 +185,7 @@ class Placer:
         :param image_shape shape of the image
         """
         im = Image.open(image_path)
+        image_shape = (im.size[1], im.size[0])
         im_data = self.image_to_data(im, image_shape)
 
         while True:
