@@ -86,7 +86,6 @@ class Placer:
 
         # get the new access token
         r = self.client.get(self.REDDIT_URL)
-
         data_str = BeautifulSoup(r.content).find("script", {"id": "data"}).contents[0][len("window.__r = "):-1]
         data = json.loads(data_str)
         self.token = data["user"]["session"]["accessToken"]
@@ -126,15 +125,3 @@ class Placer:
         )
 
         assert r.status_code == 200
-
-
-if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        print("usage: python3 place_bot.py [reddit username] [reddit password]")
-
-    username = sys.argv[1]
-    password = sys.argv[2]
-
-    placer = Placer()
-    placer.login(username, password)
-    placer.place_tile(432, 286, Color.BLACK)
