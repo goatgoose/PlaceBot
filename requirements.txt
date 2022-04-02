@@ -1,5 +1,0 @@
-requests
-websocket-client
-beautifulsoup4
-numpy
-Pillow

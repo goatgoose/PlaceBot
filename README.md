@@ -2,6 +2,11 @@
 
 Draws to www.reddit.com/r/place.
 
+## Installation
+```bash
+pip install git+https://github.com/goatgoose/PlaceBot
+```
+
 ## Usage
 ```python
 from place_bot import Placer, Color
