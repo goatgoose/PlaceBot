@@ -34,7 +34,21 @@ SET_PIXEL_QUERY = \
 
 
 class Color(Enum):
+    RED = 2
+    ORANGE = 3
+    YELLOW = 4
+    DARK_GREEN = 6
+    LIGHT_GREEN = 8
+    DARK_BLUE = 12
+    BLUE = 13
+    LIGHT_BLUE = 14
+    DARK_PURPLE = 18
+    PURPLE = 19
+    LIGHT_PINK = 23
+    BROWN = 25
     BLACK = 27
+    GRAY = 29
+    LIGHT_GRAY = 30
     WHITE = 31
 
 
