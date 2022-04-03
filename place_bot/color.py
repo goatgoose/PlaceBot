@@ -4,6 +4,18 @@ from collections import namedtuple
 color = namedtuple("color", ["id", "hex"])
 
 
+# https://stackoverflow.com/a/60748729
+def static_init(cls):
+    if getattr(cls, "static_init", None):
+        cls.static_init()
+    return cls
+
+
+_PIXEL_MAP = None
+_ID_MAP = None
+
+
+@static_init
 class Color(Enum):
     DARK_RED = color(1, "BE0039")
     RED = color(2, "FF4500")
@@ -30,12 +42,26 @@ class Color(Enum):
     LIGHT_GRAY = color(30, "D4D7D9")
     WHITE = color(31, "FFFFFF")
 
-    @staticmethod
-    def all():
+    @classmethod
+    def static_init(cls):
+        global _PIXEL_MAP
+        _PIXEL_MAP = {
+            color.value.hex: color
+            for color in cls.all()
+        }
+
+        global _ID_MAP
+        _ID_MAP = {
+            color.value.id: color
+            for color in cls.all()
+        }
+
+    @classmethod
+    def all(cls):
         # https://stackoverflow.com/a/13286863
         return [
-            getattr(Color, attr) for attr in dir(Color)
-            if not callable(getattr(Color, attr))
+            getattr(cls, attr) for attr in dir(cls)
+            if not callable(getattr(cls, attr))
             and not attr.startswith("__")
         ]
 
@@ -47,14 +73,8 @@ class Color(Enum):
     def from_pixel(rgb_im_px) -> 'Color':
         r, g, b = rgb_im_px
         hex_ = Color.rgb2hex(r, g, b)
-        return {
-            color.value.hex: color
-            for color in Color.all()
-        }.get(hex_.upper().strip("#"))
+        return _PIXEL_MAP.get(hex_.upper().strip("#"))
 
     @staticmethod
     def from_id(id_: int) -> 'Color':
-        return {
-            color.value.id: color
-            for color in Color.all()
-        }.get(id_)
+        return _ID_MAP.get(id_)
