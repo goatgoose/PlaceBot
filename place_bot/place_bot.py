@@ -2,6 +2,7 @@ from enum import Enum
 import time
 import json
 from io import BytesIO
+import random
 
 import requests
 from bs4 import BeautifulSoup
@@ -12,6 +13,7 @@ from typing import Tuple
 
 from . import queries
 from .color import Color
+from .user import User, Token
 
 
 class Placer:
@@ -36,24 +38,27 @@ class Placer:
     }
 
     def __init__(self):
-        self.client = requests.session()
-        self.client.headers.update(self.INITIAL_HEADERS)
-
-        self.token = None
+        self.users = {}  # username : user
 
     def login(self, username: str, password: str):
+        self.users[username] = User(username, password)
+
+    def _authenticate(self, user: User):
+        user.client = requests.session()
+        user.client.headers.update(self.INITIAL_HEADERS)
+
         # get the csrf token
-        r = self.client.get(self.LOGIN_URL)
+        r = user.client.get(self.LOGIN_URL)
         login_get_soup = BeautifulSoup(r.content, "html.parser")
         csrf_token = login_get_soup.find("input", {"name": "csrf_token"})["value"]
         time.sleep(1)
 
         # authenticate
-        r = self.client.post(
+        r = user.client.post(
             self.LOGIN_URL,
             data={
-                "username": username,
-                "password": password,
+                "username": user.username,
+                "password": user.password,
                 "dest": self.REDDIT_URL,
                 "csrf_token": csrf_token,
             },
@@ -63,19 +68,33 @@ class Placer:
         assert r.status_code == 200
 
         # get the new access token
-        r = self.client.get(self.REDDIT_URL)
+        r = user.client.get(self.REDDIT_URL)
         data_str = (
             BeautifulSoup(r.content, "html.parser")
                 .find("script", {"id": "data"})
                 .contents[0][len("window.__r = "): -1]
         )
         data = json.loads(data_str)
-        self.token = data["user"]["session"]["accessToken"]
+        user.token = Token(data["user"]["session"]["accessToken"])
+
+    @property
+    def placeable_users(self):
+        return [
+            user for user in self.users.values()
+            if user.placeable
+        ]
 
     def place_tile(self, x: int, y: int, color: Color):
+        assert len(self.placeable_users) > 0, "no placeable users"
+
+        user = self.placeable_users[0]
+        if not user.auth_valid:
+            self._authenticate(user)
+
         # handle 2nd canvas
+        y_ = y
         canvas_index = x // 1000
-        x -= canvas_index * 1000
+        x_ = x - canvas_index * 1000
 
         headers = self.INITIAL_HEADERS.copy()
         headers.update(
@@ -86,7 +105,7 @@ class Placer:
                 "origin": "https://hot-potato.reddit.com",
                 "referer": "https://hot-potato.reddit.com/",
                 "sec-fetch-site": "same-site",
-                "authorization": "Bearer " + self.token,
+                "authorization": "Bearer " + user.token.value,
             }
         )
 
@@ -100,7 +119,7 @@ class Placer:
                         "PixelMessageData": {
                             "canvasIndex": canvas_index,
                             "colorIndex": color.value.id,
-                            "coordinate": {"x": x, "y": y},
+                            "coordinate": {"x": x_, "y": y_},
                         },
                         "actionName": "r/replace:set_pixel",
                     }
@@ -111,6 +130,7 @@ class Placer:
 
         assert r.status_code == 200
 
+        user.set_placed()
         print(f"placed {color.name} tile at {x}, {y}")
 
     def get_map_data(self):
@@ -184,11 +204,18 @@ class Placer:
         return data
 
     def _get_map_url(self, tag: int):
+        assert len(self.users) > 0
+
+        user = random.choice(list(self.users.values()))
+        if not user.auth_valid:
+            self._authenticate(user)
+        token = user.token
+
         ws = websocket.create_connection("wss://gql-realtime-2.reddit.com/query")
         ws.send(json.dumps({
             "type": "connection_init",
             "payload": {
-                "Authorization": "Bearer " + self.token
+                "Authorization": "Bearer " + token.value
             },
         }))
         ws.send(json.dumps({
