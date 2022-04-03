@@ -63,9 +63,8 @@ class Placer:
                 "csrf_token": csrf_token,
             },
         )
-        time.sleep(1)
-
         assert r.status_code == 200
+        time.sleep(1)
 
         # get the new access token
         r = user.client.get(self.REDDIT_URL)
@@ -74,6 +73,8 @@ class Placer:
                 .find("script", {"id": "data"})
                 .contents[0][len("window.__r = "): -1]
         )
+        assert r.status_code == 200
+
         data = json.loads(data_str)
         user.token = Token(data["user"]["session"]["accessToken"])
 
@@ -131,7 +132,7 @@ class Placer:
         assert r.status_code == 200
 
         user.set_placed()
-        print(f"placed {color.name} tile at {x}, {y}")
+        print(f"placed {color.name} tile at {x}, {y} with user {user.username}")
 
     def get_map_data(self):
         map_datas = []
@@ -165,6 +166,9 @@ class Placer:
         im = Image.open(image_path)
         im_data = self.image_to_data(im, image_shape, indexed_color=indexed_color)
 
+        # find a timeout such that place_tile will always have a placeable user
+        place_timeout = int(User.PLACE_TIMEOUT / len(self.users))
+
         while True:
             map_data = self.get_map_data()
             map_slice = map_data[y: y + image_shape[0], x: x + image_shape[1]]
@@ -175,7 +179,7 @@ class Placer:
                 x_ = differing_pixel[0]
                 y_ = differing_pixel[1]
                 self.place_tile(x + x_, y + y_, Color.from_id(im_data[y_, x_]))
-                time.sleep(60 * 5 + 10)
+                time.sleep(place_timeout)
             else:
                 time.sleep(30)
 
