@@ -137,7 +137,7 @@ class Placer:
     def get_map_data(self):
         map_datas = []
 
-        for tag in range(0, 2):
+        for tag in range(0, 4):
             r = requests.get(self._get_map_url(tag))
             assert r.status_code == 200
 
@@ -149,8 +149,11 @@ class Placer:
 
         # canvas:
         # | 0 1 |
+        # | 2 3 |
 
-        map_data = np.concatenate((map_datas[0], map_datas[1]), axis=1)
+        map_data1 = np.concatenate((map_datas[0], map_datas[1]), axis=1)
+        map_data2 = np.concatenate((map_datas[2], map_datas[3]), axis=1)
+        map_data = np.concatenate((map_data1, map_data2), axis=0)
 
         return map_data
 
