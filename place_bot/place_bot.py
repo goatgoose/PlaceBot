@@ -160,14 +160,15 @@ class Placer:
         return differing_pixels
 
     @staticmethod
-    def image_to_data(image: Image, shape: Tuple[int, int], indexed_color=False):
+    def image_to_data(image: Image, shape: Tuple[int, int], indexed_color=False, fuzzy=False):
         if indexed_color:
             data = np.array(image.getdata())
 
             # all color indices are off by 1
             data = data - 1
         else:
-            data = np.array([Color.from_pixel(px).value.id for px in image.getdata()])
+            from_pixel = Color.from_pixel if not fuzzy else Color.closest_from_pixel
+            data = np.array([from_pixel(px).value.id for px in image.getdata()])
 
         data = np.reshape(data, shape)
         return data

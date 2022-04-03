@@ -1,6 +1,8 @@
 from enum import Enum
 from collections import namedtuple
 
+import numpy as np
+
 color = namedtuple("color", ["id", "hex"])
 
 
@@ -13,6 +15,7 @@ def static_init(cls):
 
 _PIXEL_MAP = None
 _ID_MAP = None
+_IDS_AND_RGB = None  # for fast numpy computations
 
 
 @static_init
@@ -55,6 +58,11 @@ class Color(Enum):
             color.value.id: color
             for color in cls.all()
         }
+        global _IDS_AND_RGB
+        _IDS_AND_RGB = np.asarray([
+            [color.value.id, *cls.hex2rgb(color.value.hex)]
+            for color in cls.all()
+        ])
 
     @classmethod
     def all(cls):
@@ -70,10 +78,20 @@ class Color(Enum):
         return f"#{r:02x}{g:02x}{b:02x}"
 
     @staticmethod
+    def hex2rgb(hex: str) -> list[int]:
+        return [int(hex[2*i:2*i+2], base=16) for i in range(3)]
+
+    @staticmethod
     def from_pixel(rgb_im_px) -> 'Color':
         r, g, b = rgb_im_px
         hex_ = Color.rgb2hex(r, g, b)
         return _PIXEL_MAP.get(hex_.upper().strip("#"))
+
+    @staticmethod
+    def closest_from_pixel(rgb_im_pix: list[int]) -> 'Color':
+        distances = np.linalg.norm(_IDS_AND_RGB[:,1:]-rgb_im_pix, axis=1)
+        closest_i = np.argmin(distances)
+        return Color.from_id(_IDS_AND_RGB[closest_i,0])
 
     @staticmethod
     def from_id(id_: int) -> 'Color':
