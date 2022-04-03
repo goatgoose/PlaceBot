@@ -154,7 +154,13 @@ class Placer:
 
         return map_data
 
-    def maintain_image(self, x: int, y: int, image_path: str, image_shape: Tuple[int, int], indexed_color=False):
+    def maintain_image(self,
+                       x: int,
+                       y: int,
+                       image_path: str,
+                       image_shape: Tuple[int, int],
+                       indexed_color=False,
+                       place_randomly=True):
         """
         :param x: left most x coord
         :param y: top most y coord
@@ -162,6 +168,7 @@ class Placer:
         :param image_shape shape of the image
         :param indexed_color image is saved using an indexed color mode, the same mode that native place images
         are formatted.
+        :param place_randomly choose randomly from which differing blocks to place
         """
         im = Image.open(image_path)
         im_data = self.image_to_data(im, image_shape, indexed_color=indexed_color)
@@ -175,7 +182,10 @@ class Placer:
 
             differing_pixels = self._find_differing_pixels(map_slice, im_data, image_shape)
             if len(differing_pixels) > 0:
-                differing_pixel = differing_pixels[0]
+                if place_randomly:
+                    differing_pixel = random.choice(differing_pixels)
+                else:
+                    differing_pixel = differing_pixels[0]
                 x_ = differing_pixel[0]
                 y_ = differing_pixel[1]
                 self.place_tile(x + x_, y + y_, Color.from_id(im_data[y_, x_]))
@@ -201,6 +211,12 @@ class Placer:
 
             # all color indices are off by 1
             data = data - 1
+
+            # assume invalid colors are black
+            data = np.array([
+                Color.from_id(id_).value.id if Color.from_id(id_) else Color.BLACK.value.id
+                for id_ in data
+            ])
         else:
             data = np.array([Color.from_pixel(px).value.id for px in image.getdata()])
 
