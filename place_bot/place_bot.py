@@ -205,12 +205,13 @@ class Placer:
     @staticmethod
     def _find_differing_pixels(map_data, im_data, shape):
         differing_pixels = []
-        for y_ in range(shape[0]):
-            for x_ in range(shape[1]):
+        for x_ in range(shape[1]):
+            for y_ in range(shape[0]):
                 map_value = map_data[y_, x_]
                 im_value = im_data[y_, x_]
                 if map_value != im_value:
                     differing_pixels.append((x_, y_))
+
         return differing_pixels
 
     @staticmethod
@@ -220,12 +221,6 @@ class Placer:
 
             # all color indices are off by 1
             data = data - 1
-
-            # assume invalid colors are black
-            data = np.array([
-                Color.from_id(id_).value.id if Color.from_id(id_) else Color.BLACK.value.id
-                for id_ in data
-            ])
         else:
             data = np.array([Color.from_pixel(px).value.id for px in image.getdata()])
 
