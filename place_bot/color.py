@@ -82,7 +82,14 @@ class Color(Enum):
         return [int(hex[2*i:2*i+2], base=16) for i in range(3)]
 
     @staticmethod
-    def from_pixel(rgb_im_px) -> 'Color':
+    def from_pixel(rgb_im_pix: list[int]) -> 'Color':
+        color = Color.exact_from_pixel(rgb_im_pix)
+        if color is None:
+            color = Color.closest_from_pixel(rgb_im_pix)
+        return color
+
+    @staticmethod
+    def exact_from_pixel(rgb_im_px: list[int]) -> 'Color':
         r, g, b = rgb_im_px
         hex_ = Color.rgb2hex(r, g, b)
         return _PIXEL_MAP.get(hex_.upper().strip("#"))
