@@ -211,6 +211,12 @@ class Placer:
 
             # all color indices are off by 1
             data = data - 1
+
+            # assume invalid colors are black
+            data = np.array([
+                Color.from_id(id_).value.id if Color.from_id(id_) else Color.BLACK.value.id
+                for id_ in data
+            ])
         else:
             data = np.array([Color.from_pixel(px).value.id for px in image.getdata()])
 
