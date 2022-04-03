@@ -22,3 +22,4 @@ See: [examples](examples/)
 - place a tile at a coordinate
 - maintain image 
    - diffs the canvas to a provided image and fills in the differing tiles
+- [multi-user support](examples/multi_user.py)
