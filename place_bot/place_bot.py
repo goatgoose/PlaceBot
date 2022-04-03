@@ -92,10 +92,16 @@ class Placer:
         if not user.auth_valid:
             self._authenticate(user)
 
-        # handle 2nd canvas
-        y_ = y
-        canvas_index = x // 1000
-        x_ = x - canvas_index * 1000
+        # handle larger canvas
+        canvas_grid = [
+            [0, 1],
+            [2, 3]
+        ]
+        canvas_index_x = x // 1000
+        x_ = x - canvas_index_x * 1000
+        canvas_index_y = y // 1000
+        y_ = y - canvas_index_y * 1000
+        canvas_index = canvas_grid[canvas_index_y][canvas_index_x]
 
         headers = self.INITIAL_HEADERS.copy()
         headers.update(
